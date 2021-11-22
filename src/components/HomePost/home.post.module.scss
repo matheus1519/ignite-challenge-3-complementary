@@ -1,0 +1,14 @@
+.homePostContainer {
+  padding: 24px 0;
+
+  p {
+    line-height: 2rem;
+    padding: 8px 0;
+    color: #bbbbbb;
+  }
+
+  &:hover h2 {
+    transition: 0.3s;
+    color: var(--pink);
+  }
+}
