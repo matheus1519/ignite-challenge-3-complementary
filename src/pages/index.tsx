@@ -1,8 +1,10 @@
+import { useState } from 'react';
+import { GetStaticProps } from 'next';
+import Link from 'next/link';
+
 import Prismic from '@prismicio/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { GetStaticProps } from 'next';
-import { useState } from 'react';
 
 import Header from '../components/Header';
 import HomePost from '../components/HomePost';
@@ -28,9 +30,13 @@ interface PostPagination {
 
 interface HomeProps {
   postsPagination: PostPagination;
+  preview?: boolean;
 }
 
-export default function Home({ postsPagination }: HomeProps): JSX.Element {
+export default function Home({
+  postsPagination,
+  preview = false,
+}: HomeProps): JSX.Element {
   const [nextPage, setNextPage] = useState(postsPagination.next_page);
   const [results, setResults] = useState<Post[]>(
     postsPagination.results.map(result => {
@@ -100,28 +106,31 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
         </footer>
       )}
 
-      {/* {preview && (
+      {preview && (
         <aside>
           <Link href="/api/exit-preview">
             <a>Sair do modo Preview</a>
           </Link>
         </aside>
-      )} */}
+      )}
     </div>
   );
 }
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps = async ({
+  preview = false,
+  previewData,
+}) => {
   const prismic = getPrismicClient();
 
   const postsResponse = await prismic.query(
     [Prismic.predicates.at('document.type', 'post')],
     {
       pageSize: 1,
+    },
+    {
+      ref: previewData?.ref ?? null,
     }
-    // {
-    //   ref: previewData?.ref ?? null,
-    // }
   );
 
   const posts = postsResponse.results.map(post => {
@@ -142,7 +151,7 @@ export const getStaticProps: GetStaticProps = async () => {
         next_page: postsResponse.next_page,
         results: posts,
       },
-      // preview,
+      preview,
     },
   };
 };

@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
 import Prismic from '@prismicio/client';
+import Link from 'next/link';
 
 import Header from '../../components/Header';
 
@@ -13,9 +14,12 @@ import { getPrismicClient } from '../../services/prismic';
 
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
+import { Comments } from '../../components/Coments';
 
 interface Post {
   first_publication_date: string | null;
+  last_publication_date: string | null;
+  uid: string;
   data: {
     title: string;
     banner: {
@@ -34,9 +38,17 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  prevPost: Post | undefined;
+  nextPost: Post | undefined;
+  wasEdited: boolean;
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({
+  post,
+  nextPost,
+  prevPost,
+  wasEdited,
+}: PostProps): JSX.Element {
   const router = useRouter();
 
   const readTime = useMemo(
@@ -89,22 +101,22 @@ export default function Post({ post }: PostProps): JSX.Element {
             </div>
           </section>
 
-          {/* {wasEdited && (
-          <section className={commonStyles.info}>
-            <div>
-              <span>
-                * editado em{' '}
-                {format(
-                  new Date(post.first_publication_date),
-                  "dd MMM yyyy, 'às' HH:mm:ss",
-                  {
-                    locale: ptBR,
-                  }
-                )}
-              </span>
-            </div>
-          </section>
-        )} */}
+          {wasEdited && (
+            <section className={commonStyles.info}>
+              <div>
+                <span>
+                  * editado em{' '}
+                  {format(
+                    new Date(post.first_publication_date),
+                    "dd MMM yyyy, 'às' HH:mm:ss",
+                    {
+                      locale: ptBR,
+                    }
+                  )}
+                </span>
+              </div>
+            </section>
+          )}
 
           {post.data.content.map(content => (
             <article key={content.heading}>
@@ -124,33 +136,33 @@ export default function Post({ post }: PostProps): JSX.Element {
             </article>
           ))}
 
-          {/* <div className={styles.predictPosts}>
-          <div className={`${styles.postItem} ${styles.prev}`}>
-            {prevPost && (
-              <>
-                <div className={styles.title}>{prevPost.data.title}</div>
-                <Link key={prevPost.uid} href={`/post/${prevPost.uid}`}>
-                  <a>Post anterior</a>
-                </Link>
-              </>
-            )}
+          <div className={styles.predictPosts}>
+            <div className={`${styles.postItem} ${styles.prev}`}>
+              {prevPost && (
+                <>
+                  <div className={styles.title}>{prevPost.data.title}</div>
+                  <Link key={prevPost.uid} href={`/post/${prevPost.uid}`}>
+                    <a>Post anterior</a>
+                  </Link>
+                </>
+              )}
+            </div>
+            <div className={`${styles.postItem} ${styles.next}`}>
+              {nextPost && (
+                <>
+                  <div className={styles.title}>{nextPost.data.title}</div>
+                  <Link key={prevPost.uid} href={`/post/${nextPost.uid}`}>
+                    <a>Próximo post</a>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
-          <div className={`${styles.postItem} ${styles.next}`}>
-            {nextPost && (
-              <>
-                <div className={styles.title}>{nextPost.data.title}</div>
-                <Link key={prevPost.uid} href={`/post/${nextPost.uid}`}>
-                  <a>Próximo post</a>
-                </Link>
-              </>
-            )}
-          </div>
-        </div> */}
         </main>
 
-        {/* <footer className={`${commonStyles.content} ${styles.postFooter}`}>
-        <Comments />
-      </footer> */}
+        <footer className={`${commonStyles.content} ${styles.postFooter}`}>
+          <Comments />
+        </footer>
       </div>
     </>
   );
@@ -183,26 +195,26 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const prismic = getPrismicClient();
   const response = await prismic.getByUID('post', String(slug), {});
 
-  // const wasEdited =
-  //   response.last_publication_date > response.first_publication_date;
+  const wasEdited =
+    response.last_publication_date > response.first_publication_date;
 
-  // const nextPost = await prismic.query(
-  //   [Prismic.Predicates.at('document.type', 'post')],
-  //   {
-  //     pageSize: 1,
-  //     after: `${response.id}`,
-  //     orderings: '[document.first_publication_date]',
-  //   }
-  // );
+  const nextPost = await prismic.query(
+    [Prismic.Predicates.at('document.type', 'post')],
+    {
+      pageSize: 1,
+      after: `${response.id}`,
+      orderings: '[document.first_publication_date]',
+    }
+  );
 
-  // const prevPost = await prismic.query(
-  //   [Prismic.Predicates.at('document.type', 'post')],
-  //   {
-  //     pageSize: 1,
-  //     after: `${response.id}`,
-  //     orderings: '[document.first_publication_date desc]',
-  //   }
-  // );
+  const prevPost = await prismic.query(
+    [Prismic.Predicates.at('document.type', 'post')],
+    {
+      pageSize: 1,
+      after: `${response.id}`,
+      orderings: '[document.first_publication_date desc]',
+    }
+  );
 
   const post = {
     uid: response.uid,
@@ -233,9 +245,9 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   return {
     props: {
       post,
-      // prevPost: prevPost?.results[0] || null,
-      // nextPost: nextPost?.results[0] || null,
-      // wasEdited,
+      prevPost: prevPost?.results[0] || null,
+      nextPost: nextPost?.results[0] || null,
+      wasEdited,
     },
     revalidate: 3600,
   };
